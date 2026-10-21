@@ -1,0 +1,40 @@
+name: Build MYiptv Fire TV APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract Android source package
+        run: |
+          mkdir -p extracted
+          unzip -q MYiptv-Android-Beta-Source.zip -d extracted
+          find extracted -maxdepth 4 -name settings.gradle -o -name settings.gradle.kts
+          PROJECT=$(find extracted -type f \( -name settings.gradle -o -name settings.gradle.kts \) -printf '%h\n' | head -1)
+          if [ -z "$PROJECT" ]; then echo "No Android Gradle project found in ZIP"; exit 1; fi
+          echo "PROJECT_DIR=$PROJECT" >> "$GITHUB_ENV"
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Build debug APK
+        run: |
+          cd "$PROJECT_DIR"
+          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew assembleDebug --no-daemon; else gradle assembleDebug --no-daemon; fi
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MYiptv-FireTV-Beta
+          path: "**/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
