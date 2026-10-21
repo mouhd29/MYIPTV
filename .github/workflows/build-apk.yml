@@ -28,7 +28,9 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - name: Add Arabic and English language support
-        run: |\n          python3 scripts/add_languages.py "$PROJECT_DIR"\n          python3 scripts/add_xtream_recent.py "$PROJECT_DIR"
+        run: |
+          python3 scripts/add_languages.py "$PROJECT_DIR"
+          python3 scripts/add_xtream_recent.py "$PROJECT_DIR"
       - name: Compile branded APK
         run: |
           cd "$PROJECT_DIR"
