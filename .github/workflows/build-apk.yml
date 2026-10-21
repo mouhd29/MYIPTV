@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,9 +36,23 @@ jobs:
         run: |
           cd "$PROJECT_DIR"
           if [ -f gradlew ]; then chmod +x gradlew; ./gradlew assembleDebug --no-daemon; else gradle assembleDebug --no-daemon; fi
+      - name: Prepare Fire TV APK filename
+        run: |
+          APK=$(find "$PROJECT_DIR/app/build/outputs/apk/debug" -name '*.apk' -type f | head -1)
+          if [ -z "$APK" ]; then echo "APK not found"; exit 1; fi
+          cp "$APK" MYiptv-FireTV-Beta.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: MYiptv-FireTV-Beta
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: MYiptv-FireTV-Beta.apk
           if-no-files-found: error
+      - name: Publish direct-download beta APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: beta-latest
+          name: MYiptv Fire TV Beta
+          prerelease: true
+          make_latest: false
+          files: MYiptv-FireTV-Beta.apk
+          body: "MYiptv player-only Android and Fire TV test APK. Use only playlists you are authorized to access."
