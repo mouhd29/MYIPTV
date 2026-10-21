@@ -1,0 +1,50 @@
+name: Build MY IPTV Branded Fire TV APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract branded Android project
+        run: |
+          mkdir -p extracted
+          unzip -q MYiptv-Branded-Android-Source.zip -d extracted
+          PROJECT=$(find extracted -type f \( -name settings.gradle -o -name settings.gradle.kts \) -printf '%h\n' | head -1)
+          test -n "$PROJECT" || { echo "Gradle project missing"; exit 1; }
+          echo "PROJECT_DIR=$PROJECT" >> "$GITHUB_ENV"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Compile branded APK
+        run: |
+          cd "$PROJECT_DIR"
+          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew assembleDebug --no-daemon; else gradle assembleDebug --no-daemon; fi
+      - name: Prepare APK
+        run: |
+          APK=$(find "$PROJECT_DIR" -path '*/build/outputs/apk/debug/*.apk' -type f | head -1)
+          test -n "$APK" || exit 1
+          cp "$APK" MYiptv-FireTV-Beta.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MYiptv-FireTV-Beta
+          path: MYiptv-FireTV-Beta.apk
+      - name: Publish beta APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: beta-latest
+          name: MY IPTV Fire TV Beta
+          prerelease: true
+          make_latest: false
+          files: MYiptv-FireTV-Beta.apk
