@@ -27,6 +27,8 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Add Arabic and English language support
+        run: python3 scripts/add_languages.py "$PROJECT_DIR"
       - name: Compile branded APK
         run: |
           cd "$PROJECT_DIR"
