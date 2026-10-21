@@ -44,11 +44,13 @@ jobs:
           name: MYiptv-FireTV-Beta
           path: MYiptv-FireTV-Beta.apk
       - name: Publish beta APK
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/firetv-landscape')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: beta-latest
-          name: MY IPTV Fire TV Beta
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-cinema-v0.4.0' }}
+          target_commitish: ${{ github.sha }}
+          name: MY IPTV Fire TV Cinema Beta 0.4.0
           prerelease: true
           make_latest: false
+          fail_on_unmatched_files: true
           files: MYiptv-FireTV-Beta.apk

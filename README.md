@@ -2,7 +2,14 @@
 
 The build extracts the original branded Android project and overlays the editable source in `tv/`. The earlier text-replacement scripts are no longer used.
 
-## Version 0.3.0
+## Version 0.4.0
+
+- Centered original MY IPTV logo, blue-black cinematic background, blue/green brand palette, prominent Live TV / Movies / Series navigation, and larger movie and series poster cards.
+- Video opens as a full-screen surface without reserved Back / Retry bars. Controls begin hidden, appear on remote OK / arrows, and hide after four seconds. Menu opens picture controls; Back hides visible controls, then exits on the next press.
+- Picture size choices: Fit preserves the whole image, Fill screen crops edges, and Stretch fills the screen with possible distortion. The selection is remembered.
+- Retry is visible only after playback errors. The on-screen Back button belongs to the temporary controls overlay.
+
+## Connections and library
 
 - Fixed landscape home and player; dark navy and teal theme, four-column artwork grid, clear D-pad focus borders, category sidebar, search, and 60-title pages.
 - Separate Connections dialog: Xtream Codes server / username / password, M3U playlist URL, or a direct HTTP(S) TS / HLS / MP4 link.
@@ -14,7 +21,7 @@ The build extracts the original branded Android project and overlays the editabl
 
 ## Build
 
-GitHub Actions runs parser unit tests and builds the debug beta APK. Branch builds upload `MYiptv-FireTV-Beta` under the run's Artifacts. Main builds also update the beta release. The APK is a debug beta, not a store-signed release. The GitHub runner's debug key may differ from your installed beta; if Android rejects an update, uninstall the previous beta first (this removes its saved settings).
+GitHub Actions runs parser unit tests and builds the debug beta APK. Branch builds upload `MYiptv-FireTV-Beta` under the run's Artifacts. Main builds update the beta release; cinema branch builds publish the versioned cinema beta for direct Downloader access. The APK is a debug beta, not a store-signed release. The GitHub runner's debug key may differ from your installed beta; if Android rejects an update, uninstall the previous beta first (this removes its saved settings).
 
 ## Fire Stick acceptance check
 
