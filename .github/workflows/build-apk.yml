@@ -1,7 +1,8 @@
 name: Build MY IPTV Branded Fire TV APK
 on:
   push:
-    branches: [main]
+    branches: [main, firetv-landscape]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
@@ -27,15 +28,12 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
-      - name: Add Arabic and English language support
-        run: |
-          python3 scripts/add_languages.py "$PROJECT_DIR"
-          python3 scripts/add_xtream_recent.py "$PROJECT_DIR"
-          python3 scripts/premium_player.py "$PROJECT_DIR"
+      - name: Apply landscape TV source
+        run: cp -R tv/. "$PROJECT_DIR/"
       - name: Compile branded APK
         run: |
           cd "$PROJECT_DIR"
-          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew assembleDebug --no-daemon; else gradle assembleDebug --no-daemon; fi
+          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew testDebugUnitTest assembleDebug --no-daemon; else gradle testDebugUnitTest assembleDebug --no-daemon; fi
       - name: Prepare APK
         run: |
           APK=$(find "$PROJECT_DIR" -path '*/build/outputs/apk/debug/*.apk' -type f | head -1)
@@ -46,6 +44,7 @@ jobs:
           name: MYiptv-FireTV-Beta
           path: MYiptv-FireTV-Beta.apk
       - name: Publish beta APK
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: beta-latest
