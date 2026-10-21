@@ -31,6 +31,7 @@ jobs:
         run: |
           python3 scripts/add_languages.py "$PROJECT_DIR"
           python3 scripts/add_xtream_recent.py "$PROJECT_DIR"
+          python3 scripts/premium_player.py "$PROJECT_DIR"
       - name: Compile branded APK
         run: |
           cd "$PROJECT_DIR"
