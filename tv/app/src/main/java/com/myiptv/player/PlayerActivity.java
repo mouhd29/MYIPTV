@@ -22,14 +22,16 @@ public class PlayerActivity extends AppCompatActivity {
     private int pictureMode;
     private String tr(String en,String ar){return getIntent().getBooleanExtra("arabic",false)?ar:en;}
     private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
-    private void immersive(){getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
+    private void immersive(){androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(),false);androidx.core.view.WindowInsetsControllerCompat controller=androidx.core.view.WindowCompat.getInsetsController(getWindow(),getWindow().getDecorView());controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars());controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
     private Button action(String text){Button b=new Button(this);b.setText(text);b.setAllCaps(false);b.setTextSize(13);b.setTextColor(Color.WHITE);b.setBackgroundTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_focused},new int[]{}},new int[]{0xff456126,0xff1b2538}));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,dp(44));p.setMargins(dp(4),0,dp(4),0);b.setLayoutParams(p);return b;}
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);if(saved!=null){position=saved.getLong("position");playing=saved.getBoolean("playing",true);}
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON|WindowManager.LayoutParams.FLAG_FULLSCREEN);immersive();
         FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);
         view=new PlayerView(this);view.setControllerAutoShow(false);view.setControllerHideOnTouch(true);view.setControllerShowTimeoutMs(4000);view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);root.addView(view,new FrameLayout.LayoutParams(-1,-1));
-        pictureMode=getSharedPreferences("player",0).getInt("pictureMode",AspectRatioFrameLayout.RESIZE_MODE_FIT);applyPicture();
+        android.content.SharedPreferences preferences=getSharedPreferences("player",0);
+        if(preferences.getInt("pictureDefaultsVersion",0)<5)preferences.edit().putInt("pictureMode",AspectRatioFrameLayout.RESIZE_MODE_ZOOM).putInt("pictureDefaultsVersion",5).apply();
+        pictureMode=preferences.getInt("pictureMode",AspectRatioFrameLayout.RESIZE_MODE_ZOOM);applyPicture();
         toolbar=new LinearLayout(this);toolbar.setGravity(Gravity.CENTER_VERTICAL);toolbar.setPadding(dp(14),dp(8),dp(14),dp(8));toolbar.setBackgroundColor(0xdd080d18);FrameLayout.LayoutParams bar=new FrameLayout.LayoutParams(-1,dp(64),Gravity.TOP);root.addView(toolbar,bar);
         if(getIntent().getBooleanExtra("arabic",false))toolbar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         Button back=action(tr("Back","رجوع"));toolbar.addView(back);back.setOnClickListener(v->finish());
