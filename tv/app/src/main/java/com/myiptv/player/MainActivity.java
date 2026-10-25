@@ -76,8 +76,8 @@ public class MainActivity extends AppCompatActivity {
     private void showHome(){
         adapter=null;grid=null;categories=null;
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(32),dp(16),dp(32),dp(16));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff1c2c53,0xff0c1221,0xff05080f}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
-        FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(105)));
-        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.myiptv_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("MY IPTV");header.addView(logo,new FrameLayout.LayoutParams(dp(180),dp(104),Gravity.CENTER));
+        FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(136)));
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.myiptv_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("MY IPTV");header.addView(logo,new FrameLayout.LayoutParams(dp(200),dp(132),Gravity.CENTER));
         TextView identity=text("MY IPTV",18,Color.WHITE);identity.setTypeface(null,Typeface.BOLD);header.addView(identity,new FrameLayout.LayoutParams(-2,-2,Gravity.START|Gravity.CENTER_VERTICAL));
         LinearLayout settings=new LinearLayout(this);header.addView(settings,new FrameLayout.LayoutParams(-2,-2,Gravity.END|Gravity.CENTER_VERTICAL));add(settings,button(tr("Playlists","قوائم التشغيل"),this::connections),-2,dp(44));add(settings,button(ar()?"English":"العربية",()->{getPreferences(0).edit().putBoolean("arabic",!ar()).apply();build();}),-2,dp(44));
         TextView welcome=text(tr("Your entertainment starts here","ترفيهك يبدأ من هنا"),24,Color.WHITE);welcome.setTypeface(null,Typeface.BOLD);welcome.setGravity(Gravity.CENTER);root.addView(welcome,new LinearLayout.LayoutParams(-1,dp(40)));
@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         String[] kinds={"Live TV","Movies","Series"};String[] symbols={"▣","▶","▤"};int[] accents={0xff6aabff,0xffb28cff,0xff96d52d};View first=null;
         for(int i=0;i<kinds.length;i++){
             final String kind=kinds[i];final int accent=accents[i];int total=0;for(Channel c:channels)if(kind.equals(c.type))total++;
-            LinearLayout tile=new LinearLayout(this);tile.setOrientation(1);tile.setGravity(Gravity.CENTER);tile.setPadding(dp(18),dp(12),dp(18),dp(12));LinearLayout.LayoutParams tileParams=new LinearLayout.LayoutParams(0,dp(166),1);tileParams.setMargins(dp(7),dp(8),dp(7),dp(8));sections.addView(tile,tileParams);
+            LinearLayout tile=new LinearLayout(this);tile.setOrientation(1);tile.setGravity(Gravity.CENTER);tile.setPadding(dp(18),dp(12),dp(18),dp(12));LinearLayout.LayoutParams tileParams=new LinearLayout.LayoutParams(0,dp(142),1);tileParams.setMargins(dp(7),dp(8),dp(7),dp(8));sections.addView(tile,tileParams);
             TextView icon=text(symbols[i],34,accent);icon.setGravity(Gravity.CENTER);tile.addView(icon,new LinearLayout.LayoutParams(-1,dp(50)));
             TextView name=text(kind.equals("Movies")?tr("MOVIES / VOD","الأفلام / VOD"):label(kind),24,Color.WHITE);name.setGravity(Gravity.CENTER);name.setTypeface(null,Typeface.BOLD);tile.addView(name,new LinearLayout.LayoutParams(-1,dp(40)));
             TextView detail=text(total+" "+tr(kind.equals("Live TV")?"channels":"titles",kind.equals("Live TV")?"قناة":"عنوان"),13,MUTED);detail.setGravity(Gravity.CENTER);tile.addView(detail);
