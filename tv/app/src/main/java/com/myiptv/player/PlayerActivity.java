@@ -20,12 +20,18 @@ public class PlayerActivity extends AppCompatActivity {
     private long position=0;
     private boolean playing=true,failed=false,pictureDialog=false;
     private int pictureMode;
+    private WatchHistory history;
+    private Channel current;
+    private boolean trackProgress=false,progressWarningShown=false;
+    private final android.os.Handler checkpointHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable checkpoint=new Runnable(){@Override public void run(){saveProgress(false);if(player!=null)checkpointHandler.postDelayed(this,10000);}};
     private String tr(String en,String ar){return getIntent().getBooleanExtra("arabic",false)?ar:en;}
     private int dp(int n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
     private void immersive(){androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(),false);androidx.core.view.WindowInsetsControllerCompat controller=androidx.core.view.WindowCompat.getInsetsController(getWindow(),getWindow().getDecorView());controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars());controller.setSystemBarsBehavior(androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
     private Button action(String text){Button b=new Button(this);b.setText(text);b.setAllCaps(false);b.setTextSize(13);b.setTextColor(Color.WHITE);b.setBackgroundTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_focused},new int[]{}},new int[]{0xff456126,0xff1b2538}));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,dp(44));p.setMargins(dp(4),0,dp(4),0);b.setLayoutParams(p);return b;}
     @Override public void onCreate(Bundle saved){
-        super.onCreate(saved);if(saved!=null){position=saved.getLong("position");playing=saved.getBoolean("playing",true);}
+        super.onCreate(saved);position=getIntent().getLongExtra("position",0);if(saved!=null){position=saved.getLong("position");playing=saved.getBoolean("playing",true);}
+        history=new WatchHistory(this);current=new Channel(value("name"),value("url"),value("group"),value("logo"),value("type"));trackProgress=current.type.equals("Movies")||current.type.equals("Series");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON|WindowManager.LayoutParams.FLAG_FULLSCREEN);immersive();
         FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);
         view=new PlayerView(this);view.setControllerAutoShow(false);view.setControllerHideOnTouch(true);view.setControllerShowTimeoutMs(4000);view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);root.addView(view,new FrameLayout.LayoutParams(-1,-1));
@@ -57,10 +63,17 @@ public class PlayerActivity extends AppCompatActivity {
             @Override public void onPlaybackStateChanged(int state){
                 if(state==Player.STATE_READY){failed=false;retry.setVisibility(View.GONE);status.setVisibility(View.GONE);view.setControllerShowTimeoutMs(4000);}
                 else if(state==Player.STATE_ENDED){status.setText(tr("Stream ended. Press OK for controls.","انتهى البث. اضغط موافق لإظهار أدوات التحكم."));status.setVisibility(View.VISIBLE);}
+                if(state==Player.STATE_ENDED)saveProgress(true);
             }
+            @Override public void onIsPlayingChanged(boolean isPlaying){if(!isPlaying)saveProgress(false);}
             @Override public void onPlayerError(PlaybackException e){failed=true;status.setText(tr("Playback failed: ","تعذر التشغيل: ")+e.getErrorCodeName()+tr(" · Check the connection or try again."," · تحقق من الاتصال أو أعد المحاولة."));status.setVisibility(View.VISIBLE);retry.setVisibility(View.VISIBLE);view.setControllerShowTimeoutMs(0);view.showController();retry.requestFocus();}
         });
-        player.setMediaItem(MediaItem.fromUri(url));player.seekTo(position);player.prepare();player.setPlayWhenReady(playing);view.hideController();toolbar.setVisibility(View.GONE);
+        player.setMediaItem(MediaItem.fromUri(url));player.seekTo(position);player.prepare();player.setPlayWhenReady(playing);view.hideController();toolbar.setVisibility(View.GONE);checkpointHandler.removeCallbacks(checkpoint);checkpointHandler.postDelayed(checkpoint,10000);
+    }
+    private String value(String key){String v=getIntent().getStringExtra(key);return v==null?"":v;}
+    private void saveProgress(boolean ended){
+        if(player==null||!trackProgress||player.isCurrentMediaItemLive()||!player.isCurrentMediaItemSeekable())return;
+        try{history.save(this,value("playlist"),current,value("parent"),player.getCurrentPosition(),player.getDuration(),ended);}catch(Exception e){if(!progressWarningShown){progressWarningShown=true;Toast.makeText(this,tr("Progress could not be saved. Check free storage.","تعذر حفظ التقدم. تحقق من مساحة الجهاز."),Toast.LENGTH_LONG).show();}}
     }
     @Override public boolean dispatchKeyEvent(KeyEvent event){
         int key=event.getKeyCode();
@@ -73,5 +86,6 @@ public class PlayerActivity extends AppCompatActivity {
     @Override public void onBackPressed(){if(toolbar.getVisibility()==View.VISIBLE){view.hideController();}else super.onBackPressed();}
     @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)immersive();}
     @Override protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putLong("position",player==null?position:player.getCurrentPosition());b.putBoolean("playing",player==null?playing:player.getPlayWhenReady());}
-    @Override protected void onStop(){if(player!=null){position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();playing=player.getPlayWhenReady();view.setPlayer(null);player.release();player=null;}super.onStop();}
+    @Override protected void onPause(){saveProgress(false);super.onPause();}
+    @Override protected void onStop(){checkpointHandler.removeCallbacks(checkpoint);saveProgress(false);if(player!=null){position=player.isCurrentMediaItemLive()?0:player.getCurrentPosition();playing=player.getPlayWhenReady();ExoPlayer releasing=player;player=null;view.setPlayer(null);releasing.release();}super.onStop();}
 }
