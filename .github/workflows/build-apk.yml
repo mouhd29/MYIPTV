@@ -47,9 +47,9 @@ jobs:
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/firetv-landscape')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.6.0' }}
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.6.1' }}
           target_commitish: ${{ github.sha }}
-          name: MY IPTV Playlists and Continue Watching Beta 0.6.0
+          name: MY IPTV Playlists and Continue Watching Beta 0.6.1
           prerelease: true
           make_latest: false
           fail_on_unmatched_files: true

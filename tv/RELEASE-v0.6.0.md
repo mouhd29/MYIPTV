@@ -1,4 +1,6 @@
-# MY IPTV 0.6.0 — Playlists and Continue Watching
+# MY IPTV 0.6.1 — Playlists and Continue Watching
+
+Returning from an episode restores remote focus to its series card (or its episode card when opened from Continue Watching).
 
 Movies and episodes save their position every ten seconds and when leaving the player. Reopening an unfinished title offers Resume and Start from Beginning. Continue Watching contains unfinished videos from the active playlist. Live TV does not save a seek position. Resume requires a seekable provider stream.
 

@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
         }else launch(c,actualParent,0);
     }
     private void launch(Channel c,String parent,long position){
-        Intent i=new Intent(this,PlayerActivity.class);i.putExtra("name",c.name);i.putExtra("url",c.url);i.putExtra("type",c.type);i.putExtra("group",c.group);i.putExtra("logo",c.logo);i.putExtra("parent",parent);i.putExtra("playlist",connection.optString("id"));i.putExtra("position",position);i.putExtra("arabic",ar());lastFocusedUrl=c.url;startActivity(i);
+        Intent i=new Intent(this,PlayerActivity.class);i.putExtra("name",c.name);i.putExtra("url",c.url);i.putExtra("type",c.type);i.putExtra("group",c.group);i.putExtra("logo",c.logo);i.putExtra("parent",parent);i.putExtra("playlist",connection.optString("id"));i.putExtra("position",position);i.putExtra("arabic",ar());lastFocusedUrl=parent.isEmpty()||tab.equals("Continue Watching")?c.url:parent;startActivity(i);
     }
     private EditText input(LinearLayout box,String hint,boolean password,String value){EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setTextSize(15);e.setTextColor(Color.WHITE);e.setHintTextColor(MUTED);e.setInputType(password?129:1);e.setText(value);add(box,e,-1,dp(50));return e;}
     private void connections(){
