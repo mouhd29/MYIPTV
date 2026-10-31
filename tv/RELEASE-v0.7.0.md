@@ -1,4 +1,4 @@
-# MY IPTV 0.7.0 — Logo Reveal and Modern Home
+# MY IPTV 0.7.1 — Logo Reveal and Modern Home
 
 - Plays the supplied ten-second logo-reveal clip offline when opening the app. Skip Intro and remote Back continue immediately. Playback errors and a fifteen-second watchdog also continue into the app.
 - Replay Logo on the home screen shows the same reveal and returns to the existing home without resetting the active playlist.

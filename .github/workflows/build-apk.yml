@@ -42,7 +42,11 @@ jobs:
           APK=$(find "$PROJECT_DIR" -path '*/build/outputs/apk/debug/*.apk' -type f | head -1)
           test -n "$APK" || exit 1
           cp "$APK" MYiptv-FireTV-Beta.apk
+      - name: Verify packaged logo reveal
+        run: python3 -c "import hashlib, zipfile; payload=zipfile.ZipFile('MYiptv-FireTV-Beta.apk').read('res/raw/logo_reveal.mp4'); assert hashlib.sha256(payload).hexdigest() == 'fa52d71673f1db4bcc671b97761ec563af8baf67d5f4919a1a207b4d1d5c56a8', 'Logo reveal package integrity failure'"
       - uses: actions/upload-artifact@v4
+        # Do not publish if the embedded media differs from the verified source.
+        # The actual package check runs immediately before this upload.
         with:
           name: MYiptv-FireTV-Beta
           path: MYiptv-FireTV-Beta.apk
@@ -50,10 +54,20 @@ jobs:
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/firetv-landscape')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.7.0' }}
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.7.1' }}
           target_commitish: ${{ github.sha }}
-          name: MY IPTV Modern Home and Logo Reveal Beta 0.7.0
+          name: MY IPTV Modern Home and Logo Reveal Beta 0.7.1
           prerelease: true
           make_latest: false
           fail_on_unmatched_files: true
           files: MYiptv-FireTV-Beta.apk
+      - name: Withdraw superseded incomplete preview
+        if: github.ref == 'refs/heads/firetv-landscape' && github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OLD_TARGET=$(gh release view firetv-v0.7.0 --repo mouhd29/MYIPTV --json targetCommitish --jq '.targetCommitish')
+          if [ "$OLD_TARGET" = "8d6ca5c2c01b9c617dcad6c6855e23b5b24ee5e4" ]; then
+            gh release edit firetv-v0.7.0 --repo mouhd29/MYIPTV --draft=true --title 'Superseded preview - use v0.7.1'
+          fi
