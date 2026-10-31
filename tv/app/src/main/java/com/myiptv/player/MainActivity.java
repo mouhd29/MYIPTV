@@ -54,12 +54,13 @@ public class MainActivity extends AppCompatActivity {
         FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(92)));
         ImageView brand=new ImageView(this);brand.setImageResource(R.drawable.myiptv_logo);brand.setScaleType(ImageView.ScaleType.FIT_CENTER);brand.setContentDescription("MY IPTV");FrameLayout.LayoutParams logoParams=new FrameLayout.LayoutParams(dp(170),dp(90),Gravity.CENTER);header.addView(brand,logoParams);
         LinearLayout settings=new LinearLayout(this);settings.setGravity(Gravity.CENTER_VERTICAL);FrameLayout.LayoutParams settingsParams=new FrameLayout.LayoutParams(-2,-2,Gravity.END|Gravity.CENTER_VERTICAL);header.addView(settings,settingsParams);
-        add(settings,button(tr("Playlists","قوائم التشغيل"),this::connections),-2,dp(40));
+        add(settings,primaryAction(tr("+ Add Playlist","+ إضافة قائمة"),this::addPlaylist),-2,dp(40));
+        add(settings,button(tr("My Playlists","قوائمي"),this::showPlaylists),-2,dp(40));
         add(settings,button(ar()?"English":"العربية",()->{getPreferences(0).edit().putBoolean("arabic",!ar()).apply();build();}),-2,dp(40));
         TextView welcome=button(tr("‹ Home","الرئيسية ›"),()->{home=true;build();});FrameLayout.LayoutParams welcomeParams=new FrameLayout.LayoutParams(dp(125),dp(44),Gravity.START|Gravity.CENTER_VERTICAL);header.addView(welcome,welcomeParams);
         LinearLayout nav=new LinearLayout(this);root.addView(nav);TextView active=null;
         for(String name:new String[]{"Live TV","Movies","Series","Continue Watching","Favorites","Recently Added"}){
-            TextView b=button(label(name),()->{tab=name;category="";page=0;build();});boolean primary=name.equals("Live TV")||name.equals("Movies")||name.equals("Series");String symbol=name.equals("Live TV")?"▣":name.equals("Movies")?"▶":name.equals("Series")?"▤":name.equals("Favorites")?"★":"＋";b.setText(symbol+"  "+label(name));b.setTextSize(primary?18:13);b.setTypeface(null,Typeface.BOLD);b.setTextColor(name.equals(tab)?ACCENT:Color.WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(62),primary?1.25f:.85f);p.setMargins(dp(3),dp(6),dp(3),dp(6));nav.addView(b,p);if(name.equals(tab))active=b;
+            TextView b=button(label(name),()->{tab=name;category="";page=0;build();});boolean primary=name.equals("Live TV")||name.equals("Movies")||name.equals("Series");String symbol=name.equals("Live TV")?"▣":name.equals("Movies")?"▶":name.equals("Series")?"▤":name.equals("Continue Watching")?"◐":name.equals("Favorites")?"★":"＋";b.setText(symbol+"  "+label(name));b.setTextSize(primary?18:13);b.setTypeface(null,Typeface.BOLD);b.setTextColor(name.equals(tab)?ACCENT:Color.WHITE);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(62),primary?1.25f:.85f);p.setMargins(dp(3),dp(6),dp(3),dp(6));nav.addView(b,p);if(name.equals(tab))active=b;
         }
         LinearLayout tools=new LinearLayout(this);tools.setGravity(Gravity.CENTER_VERTICAL);root.addView(tools);
         EditText search=new EditText(this);search.setSingleLine(true);search.setTextColor(Color.WHITE);search.setHintTextColor(MUTED);search.setTextSize(14);search.setHint(tr("Search titles…","ابحث عن عنوان…"));search.setText(query);search.setPadding(dp(12),0,dp(12),0);focus(search,PANEL);tools.addView(search,new LinearLayout.LayoutParams(0,dp(42),1));
@@ -69,38 +70,87 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout body=new LinearLayout(this);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         ScrollView sc=new ScrollView(this);categories=new LinearLayout(this);categories.setOrientation(1);sc.addView(categories);add(body,sc,dp(148),-1);
         grid=new RecyclerView(this);grid.setLayoutManager(new GridLayoutManager(this,tab.equals("Live TV")?4:5));grid.setClipToPadding(false);grid.setPadding(dp(8),dp(5),dp(8),dp(5));adapter=new Cards();grid.setAdapter(adapter);body.addView(grid,new LinearLayout.LayoutParams(0,-1,1));
-        status=text(busy?tr("Connecting…","جارٍ الاتصال…"):tr("Select to play • Hold OK for favorites","اختر للتشغيل • اضغط مطولاً على موافق للمفضلة"),12,MUTED);root.addView(status);TextView website=text(connection.optString("name")+"  •  www.miptv.me",12,ACCENT);website.setGravity(Gravity.CENTER);root.addView(website);
+        status=text(busy?tr("Loading playlist…","جارٍ تحميل القائمة…"):tr("Select to play • Hold OK for favorites","اختر للتشغيل • اضغط مطولاً على موافق للمفضلة"),12,MUTED);root.addView(status);TextView website=text(connection.optString("name")+"  •  www.miptv.me",12,ACCENT);website.setGravity(Gravity.CENTER);root.addView(website);
         search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int before,int c){query=s.toString();page=0;render();}public void afterTextChanged(Editable e){}});
         filters();render();if(active!=null)active.requestFocus();
     }
+    private TextView primaryAction(String label,Runnable action){
+        TextView control=button(label,action);control.setTypeface(null,Typeface.BOLD);
+        control.setBackground(primarySurface(false));
+        control.setOnFocusChangeListener((v,f)->{v.setBackground(primarySurface(f));v.setElevation(f?dp(6):0);});
+        return control;
+    }
+    private GradientDrawable primarySurface(boolean focused){GradientDrawable surface=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?0xff409fea:0xff287ccc,focused?0xff287ccc:0xff175698});surface.setCornerRadius(dp(12));surface.setStroke(dp(focused?3:1),focused?0xffb8ee82:0xff448dcc);return surface;}
     private void showHome(){
         adapter=null;grid=null;categories=null;
-        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(32),dp(16),dp(32),dp(16));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff1c2c53,0xff0c1221,0xff05080f}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
-        FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(136)));
-        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.myiptv_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("MY IPTV");header.addView(logo,new FrameLayout.LayoutParams(dp(200),dp(132),Gravity.CENTER));
-        TextView identity=text("MY IPTV",18,Color.WHITE);identity.setTypeface(null,Typeface.BOLD);header.addView(identity,new FrameLayout.LayoutParams(-2,-2,Gravity.START|Gravity.CENTER_VERTICAL));
-        LinearLayout settings=new LinearLayout(this);header.addView(settings,new FrameLayout.LayoutParams(-2,-2,Gravity.END|Gravity.CENTER_VERTICAL));add(settings,button(tr("Playlists","قوائم التشغيل"),this::connections),-2,dp(44));add(settings,button(ar()?"English":"العربية",()->{getPreferences(0).edit().putBoolean("arabic",!ar()).apply();build();}),-2,dp(44));
-        TextView welcome=text(tr("Your entertainment starts here","ترفيهك يبدأ من هنا"),24,Color.WHITE);welcome.setTypeface(null,Typeface.BOLD);welcome.setGravity(Gravity.CENTER);root.addView(welcome,new LinearLayout.LayoutParams(-1,dp(40)));
-        TextView tagline=text(connection.optString("name",tr("Add your first playlist","أضف قائمة التشغيل الأولى"))+"  •  "+tr("Your playlists. Your entertainment.","قوائمك. ترفيهك."),13,MUTED);tagline.setGravity(Gravity.CENTER);root.addView(tagline,new LinearLayout.LayoutParams(-1,dp(28)));
-        LinearLayout sections=new LinearLayout(this);sections.setGravity(Gravity.CENTER_VERTICAL);root.addView(sections,new LinearLayout.LayoutParams(-1,0,1));
-        String[] kinds={"Live TV","Movies","Series"};String[] symbols={"▣","▶","▤"};int[] accents={0xff6aabff,0xffb28cff,0xff96d52d};View first=null;
-        for(int i=0;i<kinds.length;i++){
-            final String kind=kinds[i];final int accent=accents[i];int total=0;for(Channel c:channels)if(kind.equals(c.type))total++;
-            LinearLayout tile=new LinearLayout(this);tile.setOrientation(1);tile.setGravity(Gravity.CENTER);tile.setPadding(dp(18),dp(12),dp(18),dp(12));LinearLayout.LayoutParams tileParams=new LinearLayout.LayoutParams(0,dp(142),1);tileParams.setMargins(dp(7),dp(8),dp(7),dp(8));sections.addView(tile,tileParams);
-            TextView icon=text(symbols[i],34,accent);icon.setGravity(Gravity.CENTER);tile.addView(icon,new LinearLayout.LayoutParams(-1,dp(50)));
-            TextView name=text(kind.equals("Movies")?tr("MOVIES / VOD","الأفلام / VOD"):label(kind),24,Color.WHITE);name.setGravity(Gravity.CENTER);name.setTypeface(null,Typeface.BOLD);tile.addView(name,new LinearLayout.LayoutParams(-1,dp(40)));
-            TextView detail=text(total+" "+tr(kind.equals("Live TV")?"channels":"titles",kind.equals("Live TV")?"قناة":"عنوان"),13,MUTED);detail.setGravity(Gravity.CENTER);tile.addView(detail);
-            focus(tile,PANEL);tile.setBackground(homeTile(accent,false));tile.setOnFocusChangeListener((v,f)->{v.setBackground(homeTile(accent,f));v.setScaleX(f?1.025f:1f);v.setScaleY(f?1.025f:1f);v.setElevation(f?dp(10):0);});tile.setOnClickListener(v->{home=false;tab=kind;category="";query="";page=0;build();});if(first==null)first=tile;
-        }
-        LinearLayout shortcuts=new LinearLayout(this);shortcuts.setGravity(Gravity.CENTER);root.addView(shortcuts);
-        for(String kind:new String[]{"Continue Watching","Favorites","Recently Added"}){add(shortcuts,button(label(kind),()->{home=false;tab=kind;category="";query="";page=0;build();}),dp(205),dp(44));}
-        LinearLayout footer=new LinearLayout(this);footer.setGravity(Gravity.CENTER);root.addView(footer);
-        TextView website=text("www.miptv.me",16,ACCENT);website.setGravity(Gravity.CENTER);add(footer,website,dp(220),dp(30));
-        add(footer,button(tr("Background","الخلفية"),this::backgroundOptions),dp(140),dp(40));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(24),dp(12),dp(24),dp(10));
+        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff142c4e,0xff080e1c,0xff040811}));
+        root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
 
-        status=text(busy?tr("Connecting…","جارٍ الاتصال…"):channels.isEmpty()?tr("Open Playlists to add your playlist","افتح قوائم التشغيل لإضافة قائمتك"):tr("Ready • Choose a section to start watching","جاهز • اختر قسماً لبدء المشاهدة"),12,MUTED);status.setGravity(Gravity.CENTER);root.addView(status,new LinearLayout.LayoutParams(-1,dp(30)));if(first!=null)first.requestFocus();
+        FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(96)));
+        LinearLayout identity=new LinearLayout(this);identity.setOrientation(LinearLayout.VERTICAL);identity.setGravity(Gravity.CENTER_VERTICAL);
+        TextView brand=text("MY IPTV",20,Color.WHITE);brand.setTypeface(null,Typeface.BOLD);identity.addView(brand);
+        TextView edition=text(tr("YOUR ENTERTAINMENT HUB","عالمك الترفيهي"),10,0xff8ca8ca);edition.setLetterSpacing(.12f);identity.addView(edition);
+        header.addView(identity,new FrameLayout.LayoutParams(-2,-1,Gravity.START));
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.myiptv_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("MY IPTV");
+        header.addView(logo,new FrameLayout.LayoutParams(dp(150),dp(94),Gravity.CENTER));
+        LinearLayout actions=new LinearLayout(this);actions.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(actions,new FrameLayout.LayoutParams(-2,-1,Gravity.END));
+        TextView addPlaylist=primaryAction(tr("+ Add Playlist","+ إضافة قائمة"),this::addPlaylist);add(actions,addPlaylist,-2,dp(44));
+        add(actions,button(tr("My Playlists","قوائمي"),this::showPlaylists),-2,dp(44));
+
+        ScrollView viewport=new ScrollView(this);viewport.setFillViewport(true);viewport.setClipToPadding(false);viewport.setVerticalScrollBarEnabled(false);
+        root.addView(viewport,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(2),0,dp(2),dp(6));viewport.addView(content);
+        LinearLayout hero=new LinearLayout(this);hero.setOrientation(LinearLayout.VERTICAL);hero.setGravity(Gravity.CENTER_VERTICAL);hero.setPadding(dp(8),dp(2),dp(8),dp(6));
+        content.addView(hero,new LinearLayout.LayoutParams(-1,dp(70)));
+        TextView welcome=text(tr("Everything you love. One screen.","كل ما تحب، على شاشة واحدة."),27,Color.WHITE);welcome.setTypeface(null,Typeface.BOLD);hero.addView(welcome);
+        String active=connection.optString("name",tr("Add a playlist to start watching","أضف قائمة تشغيل لبدء المشاهدة"));
+        TextView activeList=text((channels.isEmpty()?"":"●  ")+active,13,channels.isEmpty()?MUTED:0xffa8da79);activeList.setMaxLines(1);activeList.setEllipsize(TextUtils.TruncateAt.END);hero.addView(activeList);
+
+        LinearLayout sections=new LinearLayout(this);sections.setClipChildren(false);sections.setClipToPadding(false);
+        content.addView(sections,new LinearLayout.LayoutParams(-1,dp(180)));
+        String[] kinds={"Live TV","Movies","Series"};String[] descriptions={tr("Tune into your world","شاهد عالمك مباشرة"),tr("Cinema on your terms","السينما كما تحبها"),tr("Your next great episode","حلقتك القادمة بانتظارك")};
+        int[] icons={R.drawable.ic_live_tv,R.drawable.ic_movies,R.drawable.ic_series};int[] accents={0xff72b6ff,0xffb4a0ff,0xffb3e674};View first=null;
+        for(int index=0;index<kinds.length;index++){
+            final String kind=kinds[index];final int accent=accents[index];int total=0;for(Channel channel:channels)if(kind.equals(channel.type))total++;
+            LinearLayout tile=new LinearLayout(this);tile.setOrientation(LinearLayout.VERTICAL);tile.setPadding(dp(20),dp(14),dp(20),dp(14));
+            LinearLayout.LayoutParams placement=new LinearLayout.LayoutParams(0,-1,1);placement.setMargins(dp(6),dp(7),dp(6),dp(9));sections.addView(tile,placement);
+            LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);tile.addView(top);
+            ImageView icon=new ImageView(this);icon.setImageResource(icons[index]);icon.setColorFilter(accent);top.addView(icon,new LinearLayout.LayoutParams(dp(36),dp(36)));
+            TextView number=text("0"+(index+1),11,0xff7185a3);number.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);top.addView(number,new LinearLayout.LayoutParams(0,dp(36),1));
+            TextView title=text(kind.equals("Movies")?tr("Movies / VOD","الأفلام / VOD"):label(kind),24,Color.WHITE);title.setTypeface(null,Typeface.BOLD);title.setMaxLines(1);title.setEllipsize(TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams titleSize=new LinearLayout.LayoutParams(-1,-2);titleSize.topMargin=dp(9);tile.addView(title,titleSize);
+            TextView subtitle=text(descriptions[index],12,0xff9caec7);subtitle.setMaxLines(1);subtitle.setEllipsize(TextUtils.TruncateAt.END);tile.addView(subtitle);
+            TextView countLabel=text(total+" "+tr(kind.equals("Live TV")?"channels":"titles",kind.equals("Live TV")?"قناة":"عنوان"),12,accent);
+            LinearLayout.LayoutParams countSize=new LinearLayout.LayoutParams(-1,-2);countSize.topMargin=dp(8);tile.addView(countLabel,countSize);
+            tile.setFocusable(true);tile.setBackground(homeTile(accent,false));
+            tile.setOnFocusChangeListener((v,f)->{v.setBackground(homeTile(accent,f));v.setScaleX(f?1.02f:1f);v.setScaleY(f?1.02f:1f);v.setElevation(f?dp(10):0);});
+            tile.setOnClickListener(v->showSection(kind));if(first==null)first=tile;
+        }
+
+        LinearLayout shortcuts=new LinearLayout(this);shortcuts.setClipChildren(false);content.addView(shortcuts,new LinearLayout.LayoutParams(-1,dp(64)));
+        for(String kind:new String[]{"Continue Watching","Favorites","Recently Added"}){
+            int count=kind.equals("Continue Watching")?history.continuing(connection.optString("id")).size():0;
+            if(!kind.equals("Continue Watching"))for(Channel channel:channels)if(kind.equals("Favorites")?favorites.contains(identity(channel.url)):recent.contains(identity(channel.url)))count++;
+            LinearLayout shortcut=new LinearLayout(this);shortcut.setOrientation(LinearLayout.VERTICAL);shortcut.setGravity(Gravity.CENTER_VERTICAL);shortcut.setPadding(dp(16),dp(6),dp(16),dp(6));
+            LinearLayout.LayoutParams place=new LinearLayout.LayoutParams(0,-1,1);place.setMargins(dp(6),dp(4),dp(6),dp(4));shortcuts.addView(shortcut,place);
+            TextView name=text((kind.equals("Continue Watching")?"◐  ":kind.equals("Favorites")?"★  ":"＋  ")+label(kind),14,Color.WHITE);name.setSingleLine(true);name.setEllipsize(TextUtils.TruncateAt.END);shortcut.addView(name);
+            TextView amount=text(count+" "+tr("titles","عنوان"),11,MUTED);shortcut.addView(amount);focus(shortcut,0xff101b2c);shortcut.setOnClickListener(v->showSection(kind));
+        }
+
+        LinearLayout footer=new LinearLayout(this);footer.setGravity(Gravity.CENTER_VERTICAL);root.addView(footer,new LinearLayout.LayoutParams(-1,dp(48)));
+        TextView website=text("www.miptv.me",14,0xff8ac8ff);website.setPadding(dp(8),0,dp(8),0);footer.addView(website,new LinearLayout.LayoutParams(0,-2,1));
+        add(footer,button(tr("Replay Logo","إعادة الشعار"),this::replayLogo),-2,dp(40));
+        add(footer,button(tr("Background","الخلفية"),this::backgroundOptions),-2,dp(40));
+        add(footer,button(ar()?"English":"العربية",()->{getPreferences(0).edit().putBoolean("arabic",!ar()).apply();build();}),-2,dp(40));
+        status=text(busy?tr("Loading playlist…","جارٍ تحميل القائمة…"):channels.isEmpty()?tr("Select Add Playlist • Xtream Codes, M3U or direct stream","اختر إضافة قائمة • إكستريم أو M3U أو رابط بث مباشر"):tr("Use your remote to explore • Select a title to watch","تصفح بالريموت • اختر عنواناً للمشاهدة"),11,MUTED);status.setGravity(Gravity.CENTER);
+        root.addView(status,new LinearLayout.LayoutParams(-1,dp(22)));
+        if(channels.isEmpty())addPlaylist.requestFocus();else if(first!=null)first.requestFocus();
     }
-    private GradientDrawable homeTile(int accent,boolean focused){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?0xff253554:0xff1b2942,0xff101827});d.setCornerRadius(dp(18));d.setStroke(dp(focused?3:1),focused?accent:0xff34415a);return d;}
+    private void showSection(String kind){home=false;tab=kind;category="";query="";page=0;lastFocusedUrl="";build();}
+    private void replayLogo(){startActivity(new Intent(this,LogoRevealActivity.class).putExtra("preview",true).putExtra("arabic",ar()));}
+    private GradientDrawable homeTile(int accent,boolean focused){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?0xff213d5a:0xff162840,0xff0c1525});d.setCornerRadius(dp(20));d.setStroke(dp(focused?3:1),focused?accent:0xff293d56);return d;}
     private boolean matches(Channel c){return tab.equals("Favorites")?favorites.contains(identity(c.url)):tab.equals("Recently Added")?recent.contains(identity(c.url)):tab.equals(c.type);}
     private void filters(){categories.removeAllViews();LinkedHashSet<String> names=new LinkedHashSet<>();names.add("");for(Channel c:channels)if(matches(c))names.add(c.group);if(tab.equals("Continue Watching"))for(WatchHistory.Entry e:history.continuing(connection.optString("id")))names.add(e.channel().group);for(String g:names){TextView b=button(g.isEmpty()?tr("All categories","كل التصنيفات"):g,()->{category=g;page=0;for(int k=0;k<categories.getChildCount();k++)((TextView)categories.getChildAt(k)).setTextColor(g.equals(categories.getChildAt(k).getTag())?ACCENT:MUTED);render();});b.setTag(g);b.setMaxLines(2);b.setTextColor(category.equals(g)?ACCENT:MUTED);add(categories,b,-1,-2);}}
     private ArrayList<Channel> filtered(){
@@ -141,14 +191,14 @@ public class MainActivity extends AppCompatActivity {
         Intent i=new Intent(this,PlayerActivity.class);i.putExtra("name",c.name);i.putExtra("url",c.url);i.putExtra("type",c.type);i.putExtra("group",c.group);i.putExtra("logo",c.logo);i.putExtra("parent",parent);i.putExtra("playlist",connection.optString("id"));i.putExtra("position",position);i.putExtra("arabic",ar());lastFocusedUrl=parent.isEmpty()||tab.equals("Continue Watching")?c.url:parent;startActivity(i);
     }
     private EditText input(LinearLayout box,String hint,boolean password,String value){EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setTextSize(15);e.setTextColor(Color.WHITE);e.setHintTextColor(MUTED);e.setInputType(password?129:1);e.setText(value);add(box,e,-1,dp(50));return e;}
-    private void connections(){
+    private void showPlaylists(){
         if(busy){Toast.makeText(this,tr("Please wait for the current playlist","يرجى انتظار تحميل القائمة الحالية"),Toast.LENGTH_SHORT).show();return;}
         JSONArray all=document.optJSONArray("playlists");if(all==null)all=new JSONArray();final JSONArray lists=all;
         String[] names=new String[lists.length()+1];names[0]=tr("+ Add playlist","+ إضافة قائمة تشغيل");
         for(int j=0;j<lists.length();j++){JSONObject item=lists.optJSONObject(j);names[j+1]=(item.optString("id").equals(connection.optString("id"))?"✓  ":"")+item.optString("name");}
         new AlertDialog.Builder(this).setTitle(tr("Playlists","قوائم التشغيل")).setItems(names,(d,index)->{if(index==0)addPlaylist();else playlistActions(lists.optJSONObject(index-1));}).setNeutralButton(tr("Background","الخلفية"),(d,w)->backgroundOptions()).setNegativeButton(tr("Close","إغلاق"),null).show();
     }
-    private void addPlaylist(){new AlertDialog.Builder(this).setTitle(tr("Add playlist","إضافة قائمة تشغيل")).setItems(new String[]{"Xtream Codes",tr("M3U / M3U8 playlist URL","رابط قائمة M3U / M3U8"),tr("Direct stream URL (TS / HLS / MP4)","رابط بث مباشر (TS / HLS / MP4)")},(d,which)->connectionForm(which)).setNegativeButton(tr("Cancel","إلغاء"),null).show();}
+    private void addPlaylist(){if(busy){Toast.makeText(this,tr("Please wait for the playlist to finish loading","يرجى الانتظار حتى اكتمال تحميل القائمة"),Toast.LENGTH_SHORT).show();return;}new AlertDialog.Builder(this).setTitle(tr("Add playlist","إضافة قائمة تشغيل")).setItems(new String[]{"Xtream Codes",tr("M3U / M3U8 playlist URL","رابط قائمة M3U / M3U8"),tr("Direct stream URL (TS / HLS / MP4)","رابط بث مباشر (TS / HLS / MP4)")},(d,which)->connectionForm(which)).setNegativeButton(tr("Cancel","إلغاء"),null).show();}
     private void playlistActions(JSONObject playlist){
         new AlertDialog.Builder(this).setTitle(playlist.optString("name")).setItems(new String[]{tr("Open playlist","فتح القائمة"),tr("Rename","تغيير الاسم"),tr("Remove playlist","إزالة القائمة")},(d,index)->{if(index==0)connect(playlist);else if(index==1)renamePlaylist(playlist);else new AlertDialog.Builder(this).setTitle(tr("Remove playlist?","إزالة القائمة؟")).setMessage(playlist.optString("name")).setPositiveButton(tr("Remove","إزالة"),(dialog,w)->removePlaylist(playlist)).setNegativeButton(tr("Cancel","إلغاء"),null).show();}).setNegativeButton(tr("Close","إغلاق"),null).show();
     }
@@ -219,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(()->{if(!isDestroyed()){backgroundPhoto=bitmap;build();Toast.makeText(this,tr("Background updated","تم تحديث الخلفية"),Toast.LENGTH_SHORT).show();}});
         }catch(Exception e){temporary.delete();runOnUiThread(()->{if(!isDestroyed())Toast.makeText(this,tr("Use a JPG/PNG image under 8 MB and check access.","استخدم صورة JPG/PNG أقل من ٨ ميغابايت وتحقق من الوصول."),Toast.LENGTH_LONG).show();});}});
     }
-    private void failure(){if(isDestroyed())return;busy=false;if(home)build();else render();new AlertDialog.Builder(this).setTitle(tr("Connection failed","فشل الاتصال")).setMessage(tr("Check the server URL, credentials and network. The provider may be unavailable, the account inactive, or the response invalid. Your previous catalog is retained.","تحقق من رابط الخادم وبيانات الدخول والشبكة. قد يكون الحساب غير نشط أو الخادم غير متاح أو الاستجابة غير صالحة. تم الاحتفاظ بالقائمة السابقة.")).setPositiveButton(tr("OK","حسناً"),null).show();}
+    private void failure(){if(isDestroyed())return;busy=false;if(home)build();else render();new AlertDialog.Builder(this).setTitle(tr("Playlist unavailable","القائمة غير متاحة")).setMessage(tr("Check the server URL, credentials and network. The provider may be unavailable, the account inactive, or the response invalid. Your previous catalog is retained.","تحقق من رابط الخادم وبيانات الدخول والشبكة. قد يكون الحساب غير نشط أو الخادم غير متاح أو الاستجابة غير صالحة. تم الاحتفاظ بالقائمة السابقة.")).setPositiveButton(tr("OK","حسناً"),null).show();}
     @Override public void onBackPressed(){if(!home){home=true;build();}else super.onBackPressed();}
     @Override protected void onDestroy(){network.shutdownNow();images.shutdownNow();super.onDestroy();}
 }

@@ -4,7 +4,8 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:theme="@style/AppTheme" android:label="MY IPTV" android:icon="@mipmap/ic_launcher" android:banner="@drawable/tv_banner" android:usesCleartextTraffic="true" android:allowBackup="false" android:supportsRtl="true">
         <activity android:name=".PlayerActivity" android:exported="false" android:screenOrientation="landscape" />
-        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+        <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".LogoRevealActivity" android:exported="true" android:screenOrientation="landscape">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter>
         </activity>
