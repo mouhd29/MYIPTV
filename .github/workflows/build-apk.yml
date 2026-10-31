@@ -1,7 +1,8 @@
 name: Build MY IPTV Branded Fire TV APK
 on:
   push:
-    branches: [main]
+    branches: [main, firetv-landscape]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: write
@@ -27,29 +28,46 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
-      - name: Add Arabic and English language support
+      - name: Apply landscape TV source
         run: |
-          python3 scripts/add_languages.py "$PROJECT_DIR"
-          python3 scripts/add_xtream_recent.py "$PROJECT_DIR"
-          python3 scripts/premium_player.py "$PROJECT_DIR"
+          cp -R tv/. "$PROJECT_DIR/"
+          python3 -m pip install --disable-pip-version-check --quiet Pillow==11.3.0
+          python3 branding/generate_android_branding.py "$PROJECT_DIR"
       - name: Compile branded APK
         run: |
           cd "$PROJECT_DIR"
-          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew assembleDebug --no-daemon; else gradle assembleDebug --no-daemon; fi
+          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew testDebugUnitTest assembleDebug --no-daemon; else gradle testDebugUnitTest assembleDebug --no-daemon; fi
       - name: Prepare APK
         run: |
           APK=$(find "$PROJECT_DIR" -path '*/build/outputs/apk/debug/*.apk' -type f | head -1)
           test -n "$APK" || exit 1
           cp "$APK" MYiptv-FireTV-Beta.apk
+      - name: Verify packaged logo reveal
+        run: python3 -c "import hashlib, zipfile; payload=zipfile.ZipFile('MYiptv-FireTV-Beta.apk').read('res/raw/logo_reveal.mp4'); assert hashlib.sha256(payload).hexdigest() == 'fa52d71673f1db4bcc671b97761ec563af8baf67d5f4919a1a207b4d1d5c56a8', 'Logo reveal package integrity failure'"
       - uses: actions/upload-artifact@v4
+        # Do not publish if the embedded media differs from the verified source.
+        # The actual package check runs immediately before this upload.
         with:
           name: MYiptv-FireTV-Beta
           path: MYiptv-FireTV-Beta.apk
       - name: Publish beta APK
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/firetv-landscape')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: beta-latest
-          name: MY IPTV Fire TV Beta
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.7.1' }}
+          target_commitish: ${{ github.sha }}
+          name: MY IPTV Modern Home and Logo Reveal Beta 0.7.1
           prerelease: true
           make_latest: false
+          fail_on_unmatched_files: true
           files: MYiptv-FireTV-Beta.apk
+      - name: Withdraw superseded incomplete preview
+        if: github.ref == 'refs/heads/firetv-landscape' && github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OLD_TARGET=$(gh release view firetv-v0.7.0 --repo mouhd29/MYIPTV --json targetCommitish --jq '.targetCommitish')
+          if [ "$OLD_TARGET" = "8d6ca5c2c01b9c617dcad6c6855e23b5b24ee5e4" ]; then
+            gh release edit firetv-v0.7.0 --repo mouhd29/MYIPTV --draft=true --title 'Superseded preview - use v0.7.1'
+          fi

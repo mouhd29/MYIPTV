@@ -1,0 +1,28 @@
+name: Publish tested Fire TV APK for Downloader
+on:
+  push:
+    branches: [firetv-landscape]
+    paths: ['.github/workflows/publish-firetv-beta.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download tested APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39667052619 --repo mouhd29/MYIPTV --name MYiptv-FireTV-Beta --dir apk
+      - name: Publish direct APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: firetv-landscape-beta
+          target_commitish: f631f8840a7cab3fcfa876ba858a8e8f67d095e3
+          name: MY IPTV Fire TV Landscape Beta
+          body: "Landscape Fire TV beta with English/Arabic, Xtream Codes, M3U and direct TS/HLS streams. Download the APK below directly in Fire Stick Downloader. Compilation and automated tests passed; physical-device playback testing remains required."
+          prerelease: true
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: apk/MYiptv-FireTV-Beta.apk
