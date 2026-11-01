@@ -26,11 +26,6 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap backgroundPhoto;
     private String lastFocusedUrl="";
     private boolean busy=false,home=true;private int page=0;
-    private androidx.media3.exoplayer.ExoPlayer livePlayer;
-    private androidx.media3.ui.PlayerView liveView;
-    private Channel selectedLive;
-    private TextView liveTitle,liveInfo;
-    private boolean liveFavorites=false;
     private RecyclerView grid;private LinearLayout categories;private TextView status,count;private Cards adapter;
     private boolean ar(){return getPreferences(0).getBoolean("arabic",false);}
     private String tr(String en,String arabic){return ar()?arabic:en;}
@@ -54,9 +49,7 @@ public class MainActivity extends AppCompatActivity {
         if(home)build();else{render();restoreCardFocus();}
     }
     private void build(){
-        releaseLivePreview();selectedLive=null;
         applyTheme();
-        if(!home&&tab.equals("Live TV")){buildLiveTv();return;}
         if(home){showHome();return;}
         LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(32),dp(16),dp(32),dp(12));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff19264a,BG,0xff07090e}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
         FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(92)));
@@ -82,51 +75,6 @@ public class MainActivity extends AppCompatActivity {
         search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int before,int c){query=s.toString();page=0;render();}public void afterTextChanged(Editable e){}});
         filters();render();if(active!=null)active.requestFocus();
     }
-    private void buildLiveTv(){
-        BG=0xff101d35;PANEL=0xff243e67;ACCENT=0xffffe332;
-        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(12),dp(8),dp(12),dp(8));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff0d1930,0xff254b7c}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
-        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);root.addView(header,new LinearLayout.LayoutParams(-1,dp(52)));
-        TextView brand=text("MY IPTV",22,Color.WHITE);brand.setTypeface(null,Typeface.BOLD);header.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
-        TextView section=text(label("Live TV"),16,ACCENT);section.setPadding(dp(14),0,dp(14),0);header.addView(section);
-        add(header,button(tr("Home","الرئيسية"),()->{home=true;build();}),-2,dp(44));
-        add(header,button(tr("+ Add Playlist","+ إضافة قائمة"),this::addPlaylist),-2,dp(44));
-        add(header,button(tr("My Playlists","قوائمي"),this::showPlaylists),-2,dp(44));
-        LinearLayout body=new LinearLayout(this);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout rail=new LinearLayout(this);rail.setOrientation(1);rail.setBackground(bg(0xff152a4b,false));add(body,rail,dp(52),-1);
-        add(rail,button("⌂",()->{home=true;build();}),-1,dp(46));rail.getChildAt(0).setContentDescription(tr("Home","الرئيسية"));
-        add(rail,button("★",()->{liveFavorites=!liveFavorites;category="";page=0;filters();render();}),-1,dp(46));rail.getChildAt(1).setContentDescription(label("Favorites"));
-        add(rail,button("▶",this::openSelectedLive),-1,dp(46));rail.getChildAt(2).setContentDescription(tr("Full screen","ملء الشاشة"));
-        add(rail,button("⚙",this::showPlaylists),-1,dp(46));rail.getChildAt(3).setContentDescription(tr("My Playlists","قوائمي"));
-        ScrollView categoryScroll=new ScrollView(this);categories=new LinearLayout(this);categories.setOrientation(1);categories.setPadding(dp(4),dp(4),dp(4),dp(4));categoryScroll.setBackground(bg(0xff1d355a,false));categoryScroll.addView(categories);
-        LinearLayout.LayoutParams categorySize=new LinearLayout.LayoutParams(0,-1,.9f);categorySize.setMargins(dp(5),0,dp(5),0);body.addView(categoryScroll,categorySize);
-        LinearLayout middle=new LinearLayout(this);middle.setOrientation(1);middle.setPadding(dp(4),dp(4),dp(4),dp(4));middle.setBackground(bg(0xff1d355a,false));body.addView(middle,new LinearLayout.LayoutParams(0,-1,1.15f));
-        EditText search=new EditText(this);search.setSingleLine(true);search.setTextColor(Color.WHITE);search.setTextSize(14);search.setHintTextColor(MUTED);search.setHint(tr("Search channels","بحث القنوات"));search.setText(query);middle.addView(search,new LinearLayout.LayoutParams(-1,dp(46)));
-        grid=new RecyclerView(this);grid.setLayoutManager(new LinearLayoutManager(this));adapter=new Cards();grid.setAdapter(adapter);middle.addView(grid,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout pages=new LinearLayout(this);middle.addView(pages);
-        add(pages,button("‹",()->{if(page>0){page--;render();}}),dp(42),dp(42));
-        count=text("",11,Color.WHITE);count.setGravity(Gravity.CENTER);pages.addView(count,new LinearLayout.LayoutParams(0,dp(42),1));
-        add(pages,button("›",()->{if((page+1)*60<filtered().size()){page++;render();}}),dp(42),dp(42));
-        LinearLayout right=new LinearLayout(this);right.setOrientation(1);right.setPadding(dp(8),dp(4),dp(4),dp(4));LinearLayout.LayoutParams rightSize=new LinearLayout.LayoutParams(0,-1,1.3f);rightSize.setMargins(dp(4),0,0,0);body.addView(right,rightSize);
-        liveView=new androidx.media3.ui.PlayerView(this);liveView.setUseController(false);liveView.setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_WHEN_PLAYING);right.addView(liveView,new LinearLayout.LayoutParams(-1,dp(170)));
-        add(right,button(tr("Open Full Screen","فتح ملء الشاشة"),this::openSelectedLive),-1,dp(44));
-        liveTitle=text(tr("Select a channel","اختر قناة"),18,ACCENT);liveTitle.setTypeface(null,Typeface.BOLD);liveTitle.setMaxLines(2);right.addView(liveTitle);
-        liveInfo=text(tr("Choose a channel to play its live preview. Hold OK on a channel to update Favorites.","اختر قناة لمعاينة البث. اضغط مطولاً على موافق لتحديث المفضلة."),13,Color.WHITE);liveInfo.setPadding(0,dp(12),0,dp(12));right.addView(liveInfo);
-        status=text("",11,MUTED);root.addView(status);TextView website=text(connection.optString("name")+" • www.miptv.me",12,ACCENT);website.setGravity(Gravity.CENTER);root.addView(website);
-        search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence t,int a,int c,int f){}public void onTextChanged(CharSequence t,int a,int b,int c){query=t.toString();page=0;render();}public void afterTextChanged(Editable e){}});
-        filters();render();if(categories.getChildCount()>0)categories.getChildAt(0).requestFocus();
-    }
-    private void openSelectedLive(){if(selectedLive==null){Toast.makeText(this,tr("Select a channel first","اختر قناة أولاً"),Toast.LENGTH_SHORT).show();return;}open(selectedLive);}
-    private void previewLive(Channel channel){
-        releaseLivePreview();selectedLive=channel;liveTitle.setText(channel.name);liveInfo.setText(tr("Connecting…","جارٍ الاتصال…"));
-        livePlayer=new androidx.media3.exoplayer.ExoPlayer.Builder(this).build();liveView.setPlayer(livePlayer);
-        livePlayer.addListener(new androidx.media3.common.Player.Listener(){
-            @Override public void onPlaybackStateChanged(int state){if(liveInfo==null)return;if(state==androidx.media3.common.Player.STATE_READY)liveInfo.setText(tr("Live preview • Open Full Screen to watch","معاينة مباشرة • اختر ملء الشاشة للمشاهدة"));else if(state==androidx.media3.common.Player.STATE_BUFFERING)liveInfo.setText(tr("Buffering…","جارٍ التحميل…"));}
-            @Override public void onPlayerError(androidx.media3.common.PlaybackException error){if(liveInfo!=null)liveInfo.setText(tr("Preview unavailable. Select the channel to retry, or open full screen. ","المعاينة غير متاحة. اختر القناة لإعادة المحاولة أو افتح ملء الشاشة. ")+error.getErrorCodeName());}
-        });
-        livePlayer.setMediaItem(androidx.media3.common.MediaItem.fromUri(channel.url));livePlayer.prepare();livePlayer.play();adapter.notifyDataSetChanged();
-    }
-    private void releaseLivePreview(){if(livePlayer!=null){androidx.media3.exoplayer.ExoPlayer previous=livePlayer;livePlayer=null;if(liveView!=null)liveView.setPlayer(null);previous.release();}}
-    @Override protected void onPause(){releaseLivePreview();if(liveInfo!=null)liveInfo.setText(tr("Preview paused. Select a channel to play.","المعاينة متوقفة. اختر قناة للتشغيل."));super.onPause();}
     private TextView primaryAction(String label,Runnable action){
         TextView control=button(label,action);control.setTypeface(null,Typeface.BOLD);
         control.setBackground(primarySurface(false));
@@ -227,8 +175,8 @@ public class MainActivity extends AppCompatActivity {
     private void showSection(String kind){home=false;tab=kind;category="";query="";page=0;lastFocusedUrl="";build();}
     private void replayLogo(){startActivity(new Intent(this,LogoRevealActivity.class).putExtra("preview",true).putExtra("arabic",ar()));}
     private GradientDrawable homeTile(int accent,boolean focused){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?themeTop():PANEL,BG});d.setCornerRadius(dp(20));d.setStroke(dp(focused?3:1),focused?accent:0xff34455b);return d;}
-    private boolean matches(Channel c){return tab.equals("Favorites")?favorites.contains(identity(c.url)):tab.equals("Recently Added")?recent.contains(identity(c.url)):tab.equals(c.type)&&(!tab.equals("Live TV")||!liveFavorites||favorites.contains(identity(c.url)));}
-    private void filters(){categories.removeAllViews();LinkedHashSet<String> names=new LinkedHashSet<>();names.add("");for(Channel c:channels)if(matches(c))names.add(c.group);if(tab.equals("Continue Watching"))for(WatchHistory.Entry e:history.continuing(connection.optString("id")))names.add(e.channel().group);for(String g:names){TextView b=button(g.isEmpty()?(tab.equals("Live TV")&&liveFavorites?label("Favorites"):tr("All categories","كل التصنيفات")):g,()->{category=g;page=0;for(int k=0;k<categories.getChildCount();k++)((TextView)categories.getChildAt(k)).setTextColor(g.equals(categories.getChildAt(k).getTag())?ACCENT:MUTED);render();});b.setTag(g);b.setMaxLines(2);b.setTextColor(category.equals(g)?ACCENT:MUTED);add(categories,b,-1,tab.equals("Live TV")?dp(56):-2);}}
+    private boolean matches(Channel c){return tab.equals("Favorites")?favorites.contains(identity(c.url)):tab.equals("Recently Added")?recent.contains(identity(c.url)):tab.equals(c.type);}
+    private void filters(){categories.removeAllViews();LinkedHashSet<String> names=new LinkedHashSet<>();names.add("");for(Channel c:channels)if(matches(c))names.add(c.group);if(tab.equals("Continue Watching"))for(WatchHistory.Entry e:history.continuing(connection.optString("id")))names.add(e.channel().group);for(String g:names){TextView b=button(g.isEmpty()?tr("All categories","كل التصنيفات"):g,()->{category=g;page=0;for(int k=0;k<categories.getChildCount();k++)((TextView)categories.getChildAt(k)).setTextColor(g.equals(categories.getChildAt(k).getTag())?ACCENT:MUTED);render();});b.setTag(g);b.setMaxLines(2);b.setTextColor(category.equals(g)?ACCENT:MUTED);add(categories,b,-1,-2);}}
     private ArrayList<Channel> filtered(){
         ArrayList<Channel> pool=new ArrayList<>(),out=new ArrayList<>();
         if(tab.equals("Continue Watching")){for(WatchHistory.Entry e:history.continuing(connection.optString("id")))pool.add(e.channel());}else pool.addAll(channels);
@@ -238,12 +186,12 @@ public class MainActivity extends AppCompatActivity {
     private class Holder extends RecyclerView.ViewHolder {ImageView image;TextView title,subtitle;ProgressBar progress;Holder(LinearLayout v,ImageView i,TextView t,TextView s,ProgressBar p){super(v);image=i;title=t;subtitle=s;progress=p;}}
     private class Cards extends RecyclerView.Adapter<Holder>{
         public int getItemCount(){return shown.size();}
-        public Holder onCreateViewHolder(ViewGroup parent,int type){LinearLayout card=new LinearLayout(MainActivity.this);card.setOrientation(1);card.setPadding(dp(8),dp(8),dp(8),dp(8));RecyclerView.LayoutParams p=new RecyclerView.LayoutParams(-1,dp(tab.equals("Live TV")?78:194));p.setMargins(dp(5),dp(5),dp(5),dp(5));card.setLayoutParams(p);focus(card,PANEL);ImageView image=new ImageView(MainActivity.this);image.setScaleType(tab.equals("Live TV")?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);if(tab.equals("Live TV"))image.setVisibility(View.GONE);card.addView(image,new LinearLayout.LayoutParams(-1,0,1));TextView title=text("",14,Color.WHITE);title.setMaxLines(2);title.setEllipsize(TextUtils.TruncateAt.END);card.addView(title);TextView sub=text("",11,MUTED);sub.setSingleLine(true);sub.setEllipsize(TextUtils.TruncateAt.END);card.addView(sub);ProgressBar progress=new ProgressBar(MainActivity.this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgressTintList(android.content.res.ColorStateList.valueOf(ACCENT));card.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));return new Holder(card,image,title,sub,progress);}
-        public void onBindViewHolder(Holder h,int position){Channel c=shown.get(position);h.itemView.setTag(c.url);h.itemView.setOnFocusChangeListener((v,f)->{boolean selected=tab.equals("Live TV")&&(f||selectedLive!=null&&selectedLive.url.equals(c.url));v.setBackground(bg(selected?ACCENT:PANEL,f));h.title.setTextColor(selected?0xff15253c:Color.WHITE);h.subtitle.setTextColor(selected?0xff263b55:MUTED);v.setElevation(f?dp(6):0);if(f)lastFocusedUrl=c.url;});
-            boolean selected=tab.equals("Live TV")&&selectedLive!=null&&selectedLive.url.equals(c.url);h.itemView.setBackground(bg(selected?ACCENT:PANEL,h.itemView.hasFocus()));h.title.setTextColor(selected?0xff15253c:Color.WHITE);h.subtitle.setTextColor(selected?0xff263b55:MUTED);h.title.setText(titleFor(c));WatchHistory.Entry entry=history.forCard(connection.optString("id"),c);
+        public Holder onCreateViewHolder(ViewGroup parent,int type){LinearLayout card=new LinearLayout(MainActivity.this);card.setOrientation(1);card.setPadding(dp(8),dp(8),dp(8),dp(8));RecyclerView.LayoutParams p=new RecyclerView.LayoutParams(-1,dp(tab.equals("Live TV")?146:194));p.setMargins(dp(5),dp(5),dp(5),dp(5));card.setLayoutParams(p);focus(card,PANEL);ImageView image=new ImageView(MainActivity.this);image.setScaleType(tab.equals("Live TV")?ImageView.ScaleType.FIT_CENTER:ImageView.ScaleType.CENTER_CROP);card.addView(image,new LinearLayout.LayoutParams(-1,0,1));TextView title=text("",14,Color.WHITE);title.setMaxLines(2);title.setEllipsize(TextUtils.TruncateAt.END);card.addView(title);TextView sub=text("",11,MUTED);sub.setSingleLine(true);sub.setEllipsize(TextUtils.TruncateAt.END);card.addView(sub);ProgressBar progress=new ProgressBar(MainActivity.this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgressTintList(android.content.res.ColorStateList.valueOf(ACCENT));card.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));return new Holder(card,image,title,sub,progress);}
+        public void onBindViewHolder(Holder h,int position){Channel c=shown.get(position);h.itemView.setTag(c.url);h.itemView.setOnFocusChangeListener((v,f)->{v.setBackground(bg(PANEL,f));v.setElevation(f?dp(6):0);if(f)lastFocusedUrl=c.url;});
+            h.title.setText(titleFor(c));WatchHistory.Entry entry=history.forCard(connection.optString("id"),c);
             h.subtitle.setText(entry==null?c.group:entry.done()?tr("Watched","تمت المشاهدة"):tr("Resume at ","تابع عند ")+ProgressPolicy.time(entry.position()));
             h.progress.setVisibility(entry==null?View.GONE:View.VISIBLE);h.progress.setProgress(entry==null?0:entry.done()?1000:entry.duration()>0?(int)Math.min(1000,entry.position()*1000/entry.duration()):30);h.image.setImageResource(android.R.drawable.ic_media_play);h.image.setTag(c.logo);Bitmap cached=art.get(c.logo);if(cached!=null)h.image.setImageBitmap(cached);else if(c.logo.startsWith("https://")||c.logo.startsWith("http://")){images.execute(()->{try{HttpURLConnection con=(HttpURLConnection)new URL(c.logo).openConnection();con.setConnectTimeout(5000);con.setReadTimeout(5000);byte[] data;try(java.io.InputStream in=con.getInputStream();java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){byte[] buf=new byte[4096];int n;while((n=in.read(buf))!=-1){out.write(buf,0,n);if(out.size()>2*1024*1024)throw new java.io.IOException();}data=out.toByteArray();}finally{con.disconnect();}BitmapFactory.Options opt=new BitmapFactory.Options();opt.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(data,0,data.length,opt);opt.inSampleSize=1;while(opt.outWidth/opt.inSampleSize>480||opt.outHeight/opt.inSampleSize>480)opt.inSampleSize*=2;opt.inJustDecodeBounds=false;Bitmap b=BitmapFactory.decodeByteArray(data,0,data.length,opt);if(b!=null){art.put(c.logo,b);runOnUiThread(()->{if(c.logo.equals(h.image.getTag()))h.image.setImageBitmap(b);});}}catch(Exception ignored){}});}
-            h.itemView.setOnClickListener(v->{if(tab.equals("Live TV"))previewLive(c);else open(c);});h.itemView.setOnLongClickListener(v->{if(!favorites.add(identity(c.url)))favorites.remove(identity(c.url));getPreferences(0).edit().putStringSet("favorites",new HashSet<>(favorites)).apply();h.title.setText(titleFor(c));Toast.makeText(MainActivity.this,tr("Favorites updated","تم تحديث المفضلة"),Toast.LENGTH_SHORT).show();if(tab.equals("Favorites"))render();return true;});
+            h.itemView.setOnClickListener(v->open(c));h.itemView.setOnLongClickListener(v->{if(!favorites.add(identity(c.url)))favorites.remove(identity(c.url));getPreferences(0).edit().putStringSet("favorites",new HashSet<>(favorites)).apply();h.title.setText(titleFor(c));Toast.makeText(MainActivity.this,tr("Favorites updated","تم تحديث المفضلة"),Toast.LENGTH_SHORT).show();if(tab.equals("Favorites"))render();return true;});
         }
     }
     private String titleFor(Channel c){WatchHistory.Entry e=history.forCard(connection.optString("id"),c);return (favorites.contains(identity(c.url))?"★ ":"")+(e==null?"":e.done()?"✓ ":"◐ ")+c.name;}
