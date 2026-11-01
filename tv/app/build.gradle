@@ -6,8 +6,8 @@ android {
         applicationId 'com.myiptv.player'
         minSdk 23
         targetSdk 35
-        versionCode 11
-        versionName '0.8.0-premium-themes-beta'
+        versionCode 12
+        versionName '0.9.0-hybrid-live-beta'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
