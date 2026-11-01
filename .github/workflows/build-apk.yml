@@ -54,9 +54,9 @@ jobs:
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/firetv-landscape')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.7.1' }}
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'beta-latest' || 'firetv-v0.8.0' }}
           target_commitish: ${{ github.sha }}
-          name: MY IPTV Modern Home and Logo Reveal Beta 0.7.1
+          name: MY IPTV Premium Themes Beta 0.8.0
           prerelease: true
           make_latest: false
           fail_on_unmatched_files: true

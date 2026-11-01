@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int BG=0xff080b13,PANEL=0xff171e30,ACCENT=0xff96d52d,MUTED=0xffa3b0c8;
+    private int BG=0xff060b15,PANEL=0xff111e30,ACCENT=0xff82c6ff,MUTED=0xffa3b0c8;
     private final ArrayList<Channel> channels=new ArrayList<>(),shown=new ArrayList<>();
     private final Set<String> favorites=new HashSet<>(),recent=new HashSet<>();
     private final ExecutorService network=Executors.newSingleThreadExecutor(),images=Executors.newFixedThreadPool(3);
@@ -49,8 +49,9 @@ public class MainActivity extends AppCompatActivity {
         if(home)build();else{render();restoreCardFocus();}
     }
     private void build(){
+        applyTheme();
         if(home){showHome();return;}
-        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(24),dp(12),dp(24),dp(10));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff19264a,BG,0xff07090e}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(dp(32),dp(16),dp(32),dp(12));root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff19264a,BG,0xff07090e}));root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
         FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(92)));
         ImageView brand=new ImageView(this);brand.setImageResource(R.drawable.myiptv_logo);brand.setScaleType(ImageView.ScaleType.FIT_CENTER);brand.setContentDescription("MY IPTV");FrameLayout.LayoutParams logoParams=new FrameLayout.LayoutParams(dp(170),dp(90),Gravity.CENTER);header.addView(brand,logoParams);
         LinearLayout settings=new LinearLayout(this);settings.setGravity(Gravity.CENTER_VERTICAL);FrameLayout.LayoutParams settingsParams=new FrameLayout.LayoutParams(-2,-2,Gravity.END|Gravity.CENTER_VERTICAL);header.addView(settings,settingsParams);
@@ -69,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         add(tools,button(tr("Next","التالي"),()->{if((page+1)*60<filtered().size()){page++;render();}}),-2,dp(42));
         LinearLayout body=new LinearLayout(this);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         ScrollView sc=new ScrollView(this);categories=new LinearLayout(this);categories.setOrientation(1);sc.addView(categories);add(body,sc,dp(148),-1);
-        grid=new RecyclerView(this);grid.setLayoutManager(new GridLayoutManager(this,tab.equals("Live TV")?4:5));grid.setClipToPadding(false);grid.setPadding(dp(8),dp(5),dp(8),dp(5));adapter=new Cards();grid.setAdapter(adapter);body.addView(grid,new LinearLayout.LayoutParams(0,-1,1));
+        grid=new RecyclerView(this);grid.setLayoutManager(new GridLayoutManager(this,Math.max(3,Math.min(7,(getResources().getConfiguration().screenWidthDp-210)/(tab.equals("Live TV")?190:158)))));grid.setClipToPadding(false);grid.setPadding(dp(8),dp(5),dp(8),dp(5));adapter=new Cards();grid.setAdapter(adapter);body.addView(grid,new LinearLayout.LayoutParams(0,-1,1));
         status=text(busy?tr("Loading playlist…","جارٍ تحميل القائمة…"):tr("Select to play • Hold OK for favorites","اختر للتشغيل • اضغط مطولاً على موافق للمفضلة"),12,MUTED);root.addView(status);TextView website=text(connection.optString("name")+"  •  www.miptv.me",12,ACCENT);website.setGravity(Gravity.CENTER);root.addView(website);
         search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int before,int c){query=s.toString();page=0;render();}public void afterTextChanged(Editable e){}});
         filters();render();if(active!=null)active.requestFocus();
@@ -84,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private void showHome(){
         adapter=null;grid=null;categories=null;
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(24),dp(12),dp(24),dp(10));
-        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{0xff142c4e,0xff080e1c,0xff040811}));
+        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{themeTop(),BG,0xff03060c}));
         root.setLayoutDirection(ar()?View.LAYOUT_DIRECTION_RTL:View.LAYOUT_DIRECTION_LTR);setScreen(root);
 
         FrameLayout header=new FrameLayout(this);root.addView(header,new LinearLayout.LayoutParams(-1,dp(96)));
@@ -103,8 +104,12 @@ public class MainActivity extends AppCompatActivity {
         root.addView(viewport,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(2),0,dp(2),dp(6));viewport.addView(content);
         LinearLayout hero=new LinearLayout(this);hero.setOrientation(LinearLayout.VERTICAL);hero.setGravity(Gravity.CENTER_VERTICAL);hero.setPadding(dp(8),dp(2),dp(8),dp(6));
-        content.addView(hero,new LinearLayout.LayoutParams(-1,dp(70)));
-        TextView welcome=text(tr("Everything you love. One screen.","كل ما تحب، على شاشة واحدة."),27,Color.WHITE);welcome.setTypeface(null,Typeface.BOLD);hero.addView(welcome);
+        content.addView(hero,new LinearLayout.LayoutParams(-1,dp(100)));
+        LinearLayout messageRow=new LinearLayout(this);messageRow.setGravity(Gravity.CENTER_VERTICAL);hero.addView(messageRow,new LinearLayout.LayoutParams(-1,0,1));
+        String greeting=getPreferences(0).getString("personal_message","");
+        TextView welcome=text(greeting.isEmpty()?tr("Welcome to your entertainment.","مرحباً بك في عالمك الترفيهي."):greeting,26,Color.WHITE);welcome.setTypeface(null,Typeface.BOLD);welcome.setMaxLines(2);welcome.setEllipsize(TextUtils.TruncateAt.END);
+        messageRow.addView(welcome,new LinearLayout.LayoutParams(0,-2,1));
+        add(messageRow,button(tr("Edit Message","تعديل الرسالة"),this::editPersonalMessage),-2,dp(44));
         String active=connection.optString("name",tr("Add a playlist to start watching","أضف قائمة تشغيل لبدء المشاهدة"));
         TextView activeList=text((channels.isEmpty()?"":"●  ")+active,13,channels.isEmpty()?MUTED:0xffa8da79);activeList.setMaxLines(1);activeList.setEllipsize(TextUtils.TruncateAt.END);hero.addView(activeList);
 
@@ -142,15 +147,34 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout footer=new LinearLayout(this);footer.setGravity(Gravity.CENTER_VERTICAL);root.addView(footer,new LinearLayout.LayoutParams(-1,dp(48)));
         TextView website=text("www.miptv.me",14,0xff8ac8ff);website.setPadding(dp(8),0,dp(8),0);footer.addView(website,new LinearLayout.LayoutParams(0,-2,1));
         add(footer,button(tr("Replay Logo","إعادة الشعار"),this::replayLogo),-2,dp(40));
-        add(footer,button(tr("Background","الخلفية"),this::backgroundOptions),-2,dp(40));
+        add(footer,button(tr("Appearance","المظهر"),this::appearanceOptions),-2,dp(40));
         add(footer,button(ar()?"English":"العربية",()->{getPreferences(0).edit().putBoolean("arabic",!ar()).apply();build();}),-2,dp(40));
         status=text(busy?tr("Loading playlist…","جارٍ تحميل القائمة…"):channels.isEmpty()?tr("Select Add Playlist • Xtream Codes, M3U or direct stream","اختر إضافة قائمة • إكستريم أو M3U أو رابط بث مباشر"):tr("Use your remote to explore • Select a title to watch","تصفح بالريموت • اختر عنواناً للمشاهدة"),11,MUTED);status.setGravity(Gravity.CENTER);
         root.addView(status,new LinearLayout.LayoutParams(-1,dp(22)));
         if(channels.isEmpty())addPlaylist.requestFocus();else if(first!=null)first.requestFocus();
     }
+    private int themeTop(){String theme=getPreferences(0).getString("theme","midnight");return theme.equals("emerald")?0xff123e36:theme.equals("graphite")?0xff292d36:0xff172f53;}
+    private void applyTheme(){
+        String theme=getPreferences(0).getString("theme","midnight");
+        BG=theme.equals("emerald")?0xff050f0e:theme.equals("graphite")?0xff090a0d:0xff060b15;
+        PANEL=theme.equals("emerald")?0xff102b25:theme.equals("graphite")?0xff1c2028:0xff111e30;
+        ACCENT=theme.equals("emerald")?0xff82e5b8:theme.equals("graphite")?0xffe6cf9a:0xff82c6ff;
+    }
+    private void appearanceOptions(){
+        new AlertDialog.Builder(this).setTitle(tr("Appearance","المظهر")).setItems(new String[]{tr("Choose theme","اختيار السمة"),tr("Personal message","الرسالة الشخصية"),tr("Background photo","صورة الخلفية")},(d,index)->{if(index==1)editPersonalMessage();else if(index==2)backgroundOptions();else{
+            String[] ids={"midnight","emerald","graphite"};String current=getPreferences(0).getString("theme","midnight");int selected=java.util.Arrays.asList(ids).indexOf(current);
+            new AlertDialog.Builder(this).setTitle(tr("Choose theme","اختيار السمة")).setSingleChoiceItems(new String[]{tr("Midnight Blue","أزرق ليلي"),tr("Emerald","زمردي"),tr("Graphite Gold","رمادي وذهبي")},Math.max(0,selected),(dialog,which)->{getPreferences(0).edit().putString("theme",ids[which]).apply();dialog.dismiss();build();}).setNegativeButton(tr("Close","إغلاق"),null).show();
+        }}).setNegativeButton(tr("Close","إغلاق"),null).show();
+    }
+    private void editPersonalMessage(){
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(20),dp(12),dp(20),dp(12));box.setBackgroundColor(PANEL);
+        TextView note=text(tr("Add your welcome message (up to 120 characters).","أضف رسالة الترحيب الخاصة بك (حتى ١٢٠ حرفاً)."),14,MUTED);box.addView(note);
+        EditText message=new EditText(this);message.setTextColor(Color.WHITE);message.setHintTextColor(MUTED);message.setHint(tr("Welcome, Mohammed. Enjoy your evening.","أهلاً محمد، نتمنى لك مشاهدة ممتعة."));message.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);message.setMinLines(2);message.setMaxLines(3);message.setFilters(new InputFilter[]{new InputFilter.LengthFilter(120)});message.setText(getPreferences(0).getString("personal_message",""));box.addView(message,new LinearLayout.LayoutParams(-1,-2));
+        new AlertDialog.Builder(this).setTitle(tr("Your personal message","رسالتك الشخصية")).setView(box).setPositiveButton(tr("Save","حفظ"),(d,w)->{getPreferences(0).edit().putString("personal_message",message.getText().toString().trim()).apply();build();}).setNeutralButton(tr("Reset","إعادة ضبط"),(d,w)->{getPreferences(0).edit().remove("personal_message").apply();build();}).setNegativeButton(tr("Cancel","إلغاء"),null).show();
+    }
     private void showSection(String kind){home=false;tab=kind;category="";query="";page=0;lastFocusedUrl="";build();}
     private void replayLogo(){startActivity(new Intent(this,LogoRevealActivity.class).putExtra("preview",true).putExtra("arabic",ar()));}
-    private GradientDrawable homeTile(int accent,boolean focused){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?0xff213d5a:0xff162840,0xff0c1525});d.setCornerRadius(dp(20));d.setStroke(dp(focused?3:1),focused?accent:0xff293d56);return d;}
+    private GradientDrawable homeTile(int accent,boolean focused){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{focused?themeTop():PANEL,BG});d.setCornerRadius(dp(20));d.setStroke(dp(focused?3:1),focused?accent:0xff34455b);return d;}
     private boolean matches(Channel c){return tab.equals("Favorites")?favorites.contains(identity(c.url)):tab.equals("Recently Added")?recent.contains(identity(c.url)):tab.equals(c.type);}
     private void filters(){categories.removeAllViews();LinkedHashSet<String> names=new LinkedHashSet<>();names.add("");for(Channel c:channels)if(matches(c))names.add(c.group);if(tab.equals("Continue Watching"))for(WatchHistory.Entry e:history.continuing(connection.optString("id")))names.add(e.channel().group);for(String g:names){TextView b=button(g.isEmpty()?tr("All categories","كل التصنيفات"):g,()->{category=g;page=0;for(int k=0;k<categories.getChildCount();k++)((TextView)categories.getChildAt(k)).setTextColor(g.equals(categories.getChildAt(k).getTag())?ACCENT:MUTED);render();});b.setTag(g);b.setMaxLines(2);b.setTextColor(category.equals(g)?ACCENT:MUTED);add(categories,b,-1,-2);}}
     private ArrayList<Channel> filtered(){
@@ -257,7 +281,7 @@ public class MainActivity extends AppCompatActivity {
         }).setNegativeButton(tr("Close","إغلاق"),null).show();
     }
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==74&&result==RESULT_OK&&data!=null&&data.getData()!=null)importBackground(data.getData(),null);}
-    private Bitmap decodePhoto(byte[] data)throws Exception{BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(data,0,data.length,options);if(options.outWidth<=0||options.outHeight<=0)throw new java.io.IOException();options.inSampleSize=1;while(options.outWidth/options.inSampleSize>1920||options.outHeight/options.inSampleSize>1080)options.inSampleSize*=2;options.inJustDecodeBounds=false;Bitmap bitmap=BitmapFactory.decodeByteArray(data,0,data.length,options);if(bitmap==null)throw new java.io.IOException();return bitmap;}
+    private Bitmap decodePhoto(byte[] data)throws Exception{BitmapFactory.Options options=new BitmapFactory.Options();options.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(data,0,data.length,options);if(options.outWidth<=0||options.outHeight<=0)throw new java.io.IOException();options.inSampleSize=1;while(options.outWidth/options.inSampleSize>Math.min(3840,Math.max(1280,getResources().getDisplayMetrics().widthPixels))||options.outHeight/options.inSampleSize>Math.min(2160,Math.max(720,getResources().getDisplayMetrics().heightPixels)))options.inSampleSize*=2;options.inJustDecodeBounds=false;Bitmap bitmap=BitmapFactory.decodeByteArray(data,0,data.length,options);if(bitmap==null)throw new java.io.IOException();return bitmap;}
     private byte[] photoBytes(java.io.InputStream stream)throws Exception{try(java.io.InputStream in=stream;java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){if(in==null)throw new java.io.IOException();byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){out.write(buffer,0,n);if(out.size()>8*1024*1024)throw new java.io.IOException();}return out.toByteArray();}}
     private void loadSavedBackground(){java.io.File file=new java.io.File(getFilesDir(),"background.jpg");if(!file.exists())return;images.execute(()->{try{Bitmap bitmap=decodePhoto(photoBytes(new java.io.FileInputStream(file)));runOnUiThread(()->{if(!isDestroyed()){backgroundPhoto=bitmap;build();}});}catch(Exception ignored){}});}
     private void importBackground(android.net.Uri uri,String address){
